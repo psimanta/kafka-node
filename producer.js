@@ -1,6 +1,13 @@
 const { Kafka } = require("kafkajs");
+const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path
+const ffmpeg = require('fluent-ffmpeg')
+ffmpeg.setFfmpegPath(ffmpegPath)
 const fs = require("fs");
 const path = require("path");
+
+const getTime = (second) => {
+    return String(new Date(second * 1000).toISOString().substr(11, 8))
+}
 
 const produce = async () => {
     const kafka = new Kafka({
@@ -18,37 +25,38 @@ const produce = async () => {
         console.log("Error:.........", error);
     }
 
+    ffmpeg.ffprobe('./assets/video.mp4', (error, metadata) => {
+        const duration = metadata.format.duration;
+        for (let i = 0, startTime = 0; startTime <= duration; i++, startTime += 3) {
+            ffmpeg('./assets/video.mp4')
+                .setStartTime(getTime(startTime))
+                .setDuration('3')
+                .output(`./producer_data/${i}.mp4`)
+                .on('end', function (err) {
+                    if (!err) { console.log('conversion Done') }
+                    movie_data = fs.readFileSync(path.resolve(`./producer_data/${i}.mp4`));
+                    producer.send({
+                        topic: "test-streaming",
+                        messages: [
+                            {
+                                value: movie_data,
+                                key: String(i),
+                            },
+                        ],
+                    });
 
-    let movie_data;
-    fs.readFile(path.resolve("video.mp4"), async function (err, data) {
-        if (err) {
-            throw err;
+                })
+                .on('error', function (err) {
+                    console.log('error: ', err)
+                }).run()
         }
-        movie_data = data;
-
-        var i,
-            j,
-            temparray,
-            chunk = 1000000;
-        var index = 0;
-        for (i = 0, j = movie_data.length; i < j; i += chunk) {
-            temparray = movie_data.slice(i, i + chunk);
-            //console.log(temparray);
-            producer.send({
-                topic: "test-streaming",
-                messages: [
-                    {
-                        value: temparray,
-                        key: String(index),
-                    },
-                ],
-            });
-            index++;
-        }
-        await producer.disconnect();
     });
-};
 
-produce()
+    //await producer.disconnect();
+}
+
+produce();
+
+
 
 module.exports = produce;

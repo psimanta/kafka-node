@@ -12,7 +12,6 @@ const consume = async () => {
     await consumer.subscribe({ topic: "test-streaming", fromBeginning: true });
     await consumer.run({
         eachMessage: async ({ topic, partition, message }) => {
-            console.log("Buffer:", message.value);
             fs.writeFile(`./output/${message.offset}.mp4`, message.value, 'binary', function (err) {
                 if (err) {
                     console.log(err);
@@ -22,7 +21,6 @@ const consume = async () => {
             });
         },
     })
-
     return consumer;
 };
 
