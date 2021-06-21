@@ -2,6 +2,7 @@ const express = require('express')
 const fs = require('fs')
 const app = express()
 
+
 app.get('/video', function (req, res) {
     const path = 'assets/video.mp4'
     const stat = fs.statSync(path)

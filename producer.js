@@ -9,9 +9,10 @@ const getTime = (second) => {
     return String(new Date(second * 1000).toISOString().substr(11, 8))
 }
 
+
+// Returns promise, awaits the for loop till all one split completes
 const splitVid = (i, startTime, producer) => {
     return new Promise(function (resolve, reject) {
-        // do some long running async thingâ€¦
         ffmpeg('./assets/video.mp4')
             .setStartTime(getTime(startTime))
             .setDuration('1')
@@ -57,6 +58,7 @@ const produce = async () => {
 
     ffmpeg.ffprobe('./assets/video.mp4', async (error, metadata) => {
         const duration = metadata.format.duration;
+        fs.writeFileSync("metadata.json", JSON.stringify(metadata));
         for (let i = 0, startTime = 0; startTime <= duration; i++, startTime += 1) {
             var res = await splitVid(i, startTime, producer);
             console.log(res);
