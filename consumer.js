@@ -9,7 +9,7 @@ const consume = async () => {
     const consumer = kafka.consumer({ groupId: "test-consumer" });
 
     await consumer.connect();
-    await consumer.subscribe({ topic: "test-streaming", fromBeginning: true });
+    await consumer.subscribe({ topic: "test-streaming-2", fromBeginning: true });
     await consumer.run({
         eachMessage: async ({ topic, partition, message }) => {
             fs.writeFile(`./output/${message.offset}.mp4`, message.value, 'binary', function (err) {

@@ -9,6 +9,36 @@ const getTime = (second) => {
     return String(new Date(second * 1000).toISOString().substr(11, 8))
 }
 
+const splitVid = (i, startTime, producer) => {
+    return new Promise(function (resolve, reject) {
+        // do some long running async thingâ€¦
+        ffmpeg('./assets/video.mp4')
+            .setStartTime(getTime(startTime))
+            .setDuration('1')
+            .output(`./producer_data/${i}.mp4`)
+            .on('end', function (err) {
+                if (!err) {
+                    resolve(`Success: Conversion Done for ${i}`);
+                    movie_data = fs.readFileSync(path.resolve(`./producer_data/${i}.mp4`));
+                    producer.send({
+                        topic: "test-streaming-2",
+                        messages: [
+                            {
+                                value: movie_data,
+                                key: String(i),
+                            },
+                        ],
+                    });
+                }
+            })
+            .on('error', function (err) {
+                reject(`Error: Conversion Failed for ${i}`);
+                console.log("Error!", err);
+            })
+            .run()
+    });
+}
+
 const produce = async () => {
     const kafka = new Kafka({
         clientId: "1",
@@ -25,34 +55,15 @@ const produce = async () => {
         console.log("Error:.........", error);
     }
 
-    ffmpeg.ffprobe('./assets/video.mp4', (error, metadata) => {
+    ffmpeg.ffprobe('./assets/video.mp4', async (error, metadata) => {
         const duration = metadata.format.duration;
-        for (let i = 0, startTime = 0; startTime <= duration; i++, startTime += 3) {
-            ffmpeg('./assets/video.mp4')
-                .setStartTime(getTime(startTime))
-                .setDuration('3')
-                .output(`./producer_data/${i}.mp4`)
-                .on('end', function (err) {
-                    if (!err) { console.log('conversion Done') }
-                    movie_data = fs.readFileSync(path.resolve(`./producer_data/${i}.mp4`));
-                    producer.send({
-                        topic: "test-streaming",
-                        messages: [
-                            {
-                                value: movie_data,
-                                key: String(i),
-                            },
-                        ],
-                    });
-
-                })
-                .on('error', function (err) {
-                    console.log('error: ', err)
-                }).run()
+        for (let i = 0, startTime = 0; startTime <= duration; i++, startTime += 1) {
+            var res = await splitVid(i, startTime, producer);
+            console.log(res);
         }
+        console.log("Splitting Done")
+        await producer.disconnect();
     });
-
-    //await producer.disconnect();
 }
 
 produce();
