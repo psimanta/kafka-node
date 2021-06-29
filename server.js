@@ -2,16 +2,8 @@ const express = require('express');
 const { Kafka } = require("kafkajs");
 const app = express();
 const port = 3001;
-const consumer = require('./consumer')();
 const fs = require('fs');
-const { Duplex } = require('stream')
-
-function bufferToStream(myBuuffer) {
-    let tmp = new Duplex();
-    tmp.push(myBuuffer);
-    tmp.push(null);
-    return tmp;
-}
+const { bufferToStream } = require('./utils');
 
 app.get('/data', async (req, res) => {
     const kafka = new Kafka({
@@ -24,16 +16,9 @@ app.get('/data', async (req, res) => {
     await consumer.subscribe({ topic: "test-streaming-2", fromBeginning: true });
     await consumer.run({
         eachMessage: async ({ topic, partition, message }) => {
-            // fs.writeFile(`./output/${message.offset}.mp4`, message.value, 'binary', function (err) {
-            //     if (err) {
-            //         console.log(err);
-            //     } else {
-            //         console.log("Done!");
-            //     }
-            // });
             const fileSize = Buffer.byteLength(message.value);
             const range = req.headers.range;
-            if (range) {
+            if (range && 0) {
                 const parts = range.replace(/bytes=/, "").split("-")
                 const start = parseInt(parts[0], 10);
                 const end = parts[1]
@@ -41,6 +26,7 @@ app.get('/data', async (req, res) => {
                     : fileSize - 1;
                 const chunksize = (end - start) + 1
                 const file = bufferToStream(message.value, { start, end })
+                console.log(file);
                 const head = {
                     'Content-Range': `bytes ${start}-${end}/${fileSize}`,
                     'Accept-Ranges': 'bytes',
@@ -50,7 +36,6 @@ app.get('/data', async (req, res) => {
                 res.writeHead(206, head)
                 file.pipe(res)
             }
-            // console.log(Buffer.byteLength(message.value));
         },
     })
 })

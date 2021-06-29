@@ -2,8 +2,7 @@ const express = require('express')
 const fs = require('fs')
 const app = express()
 
-
-app.get('/video', function (req, res) {
+app.get('/data', function (req, res) {
     const path = 'assets/video.mp4'
     const stat = fs.statSync(path)
     const fileSize = stat.size
@@ -29,20 +28,20 @@ app.get('/video', function (req, res) {
             'Content-Length': chunksize,
             'Content-Type': 'video/mp4',
         }
-
-        res.writeHead(206, head)
+        console.log(head);
+        res.writeHead(206, head);
         file.pipe(res)
     }
-    else {
-        const head = {
-            'Content-Length': fileSize,
-            'Content-Type': 'video/mp4',
-        }
-        res.writeHead(200, head)
-        fs.createReadStream(path).pipe(res)
-    }
+    // else {
+    //     const head = {
+    //         'Content-Length': fileSize,
+    //         'Content-Type': 'video/mp4',
+    //     }
+    //     res.writeHead(200, head)
+    //     fs.createReadStream(path).pipe(res)
+    // }
 })
 
-app.listen(3002, function () {
+app.listen(3001, function () {
     console.log('Listening on port 3002!')
 })
